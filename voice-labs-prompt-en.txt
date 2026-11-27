@@ -1,0 +1,50 @@
+[HOW TO USE]
+1. Open Gemini and enable the "Canvas" toggle below the prompt box.
+2. Copy everything below PROMPT START, paste it, and send.
+3. Switch to the "Preview" tab in Canvas — the app runs live right inside the window.
+   (You can also click "Export .HTML" in the top right to save and run it locally.)
+
+--- PROMPT START ---
+
+Create a complete, live interactive single-page web application ("Voice Labs — ElevenLabs TTS & Speech-to-Text Studio") designed to render and run immediately inside Gemini Canvas Preview.
+
+CANVAS & OUTPUT RULES (STRICT):
+- Do NOT write explanations and do NOT split into multiple files or steps. Output ONLY one complete, self-contained ```html code block so Canvas Preview launches immediately.
+- Embed all CSS and vanilla JavaScript cleanly inside the single HTML file (Tailwind CSS CDN, Font Awesome 6.5 CDN, Google Fonts: Plus Jakarta Sans, Inter, JetBrains Mono).
+- Never use placeholders (`// TODO`, `...`) or omitted functions. Code must end cleanly with `</script></body></html>`.
+- Never hardcode any API key or Voice ID (BYOK). Wrap all `localStorage` and `IndexedDB` calls in `try/catch` with automatic in-memory (`Map`) fallbacks so it runs smoothly inside sandboxed Canvas iframes.
+- Pre-load a 2-paragraph sample script (body + video outro) on startup so users can immediately test "Auto-Add Emotions" and the interactive UI even before entering an API key.
+
+DESIGN:
+- Dark Google AI Studio / Gemini aesthetic (`#090b10` background, subtle dot-matrix texture, soft blue/violet/teal ambient glow, frosted glass rounded cards, Material 3 pill switches, gradient primary buttons, English UI).
+- Sticky top navbar: "Voice Labs" brand | Centered "Text to Speech" / "Speech to Text (Scribe)" mode switcher | Right live remaining-minutes badge + "Export .HTML" button.
+- Clean hero section + right-side live account quota card (remaining credits, estimated v4 Turbo minutes, progress bar).
+- 3-column responsive layout: Left (Shared API key + mode settings) | Center (Script editor or STT workspace) | Right (Audio player + 2-tab History / Cache Library).
+
+FEATURE 1 — TEXT-TO-SPEECH (ELEVENLABS API):
+- `GET https://api.elevenlabs.io/v1/user/subscription` for live quota and v4 Turbo remaining minutes (50% off: 0.5 credits/char).
+- `GET https://api.elevenlabs.io/v1/voices` to populate a selectable voice dropdown.
+- Models: `eleven_v4_turbo` (default), `eleven_v4`, `eleven_v3`, `eleven_turbo_v2_5`, `eleven_multilingual_v2`. Formats: `mp3_44100_128`, `mp3_44100_192`, `mp3_22050_32`.
+- Sliders: `stability`, `similarity_boost`, `style`, `speed`, `use_speaker_boost` + one-click "Expressive Mode" preset (`stability: 0.35`, `style: 0.15`).
+- `POST https://api.elevenlabs.io/v1/text-to-speech/{voice_id}?output_format=...`: send `previous_text` and `next_text` across stitched chunks for natural prosody; auto-retry cleanly without optional fields on 400/422 errors.
+- Player: real-time Web Audio API (`AnalyserNode`) canvas waveform visualizer, playback speed (`0.85x–1.25x`), MP3 download.
+
+FEATURE 2 — ELEVENLABS-STYLE AUTO-EMOTION TAGGING (ENHANCE):
+- NEVER rewrite or delete any spoken words—only insert concise inline English square-bracket Audio Tags (`[excited]`, `[whispering]`, `[sighing]`, `[laughing]`, `[chuckling]`, `[gasping]`, `[curious]`, `[sad]`, `[angry]`, `[nervous]`, `[relieved]`, `[sarcastic]`, `[serious]`, `[warmly]`, `[softly]`, `[pause]`, `[dramatic pause]`, `[clears throat]`) before emotional shifts without repeating the same tag consecutively.
+- Default free "Local Smart Engine" (zero API key): lexicon + punctuation (`...`, `?!`, `!`, `?`, ALL-CAPS) + discourse-turn (`however`, `actually`, `suddenly`, `wait` -> `[pause]`) + negation guard (`don't worry`, `calm down`, `not happy`).
+- 4 styles (`Natural Dialogue`, `Dramatic`, `Storyteller`, `Energetic`), 3 densities (`Light`, `Balanced`, `Expressive`), "Re-roll", "Undo", "Preserve existing tags", "Auto-enhance before generating", plus an optional Gemini/OpenAI LLM API drawer.
+- Searchable, categorized 40+ tag palette (inserts at cursor) + custom tags + "Emotion Flow" strip + compatibility warning banner for v2/v2.5 models.
+
+FEATURE 3 — PERSISTENT SEGMENT CACHE (INDEXEDDB) & SEAMLESS MP3 STITCHER:
+- Cache recurring sections (intros, outros, CTAs) in `IndexedDB` (`ArrayBuffer` + metadata, with RAM `Map` fallback). Reuse matching sections for 0 credits and stitch them seamlessly with newly generated parts into one clean `.mp3`.
+- 2-stage smart matcher: (1) greedy longest-match substring scan on word boundaries to catch cached/pinned snippets even without line breaks; (2) split remaining new gaps by granularity (`Line / Paragraph`, `Blank-Line Paragraphs`, or `Sentence-Level`), call API only for missing chunks, and persist every new chunk.
+- Always match `voiceId` + `outputFormat`; include "Flexible tone matching" so cached clips stay reusable even if tone sliders change. When "Auto-enhance before generating" is enabled, leave cached hits untouched and enhance only new untagged chunks.
+- Live Plan strip under the editor showing green (`Cached • 0 chars` with inline play & single-chunk regenerate buttons) and blue (`API`) chips, net billable credits + saved credits display, and a "Pin Selection / Last Line" button.
+- Frame-accurate CBR MP3 merger: parse MPEG Layer III frame headers to strip `ID3v2`, `ID3v1`, and `Xing`/`Info`/`VBRI` frames from all chunks, insert configurable silent MPEG bridge frames (`0/100/250/450 ms`) matching exact format headers, and fall back to Web Audio PCM -> WAV if formats ever differ.
+- Right sidebar 2-tab card ("History" / "Cache"): stored count & MB, lifetime credits saved counter, All/Pinned filter, search, and per-item "Play", "Append to End", "Pin", and "Delete" controls.
+
+FEATURE 4 — SPEECH-TO-TEXT (ELEVENLABS SCRIBE V3 / V2 / V1):
+- `POST https://api.elevenlabs.io/v1/speech-to-text` (`FormData` + `XMLHttpRequest` live upload progress bar).
+- Drag-and-drop audio/video upload (`MP3, WAV, M4A, OGG, WEBM, MP4, MOV`) + live browser mic recorder (`MediaRecorder` + live level meter).
+- Language selector, speaker diarization (`diarize`), audio events (`tag_audio_events`), timestamps (`word`/`character`/`none`), and `keyterms`.
+- 3 views: Plain/speaker-formatted text, clickable timestamped timeline (seeks preview player), auto-generated `.SRT`/`.VTT` subtitle preview + export `.TXT`/`.SRT`/`.VTT`/`.JSON` + one-click "Send to TTS Editor".

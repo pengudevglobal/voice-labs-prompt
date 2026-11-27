@@ -1,0 +1,50 @@
+[KULLANIM NOTU]
+1. Gemini'yi aç ve yazma kutusunun altındaki "Canvas" seçeneğini aktif et.
+2. Aşağıdaki promptu (PROMPT BAŞLANGICI altından itibaren) kopyalayıp yapıştır ve gönder.
+3. Sağda açılan panelde "Önizleme (Preview)" sekmesine geç; uygulama doğrudan içinde çalışır.
+   (İstersen sağ üstteki ".HTML İndir" butonuyla bilgisayarına kaydedip çift tıklayarak da açabilirsin.)
+
+--- PROMPT BAŞLANGICI ---
+
+Gemini Canvas canlı önizlemesinde doğrudan çalışacak, eksiksiz, etkileşimli ve tek sayfalık bir web uygulaması ("Voice Labs — ElevenLabs TTS & Speech-to-Text Stüdyosu") oluştur.
+
+CANVAS & ÇIKTI KURALLARI (KESİN UYULACAK):
+- Açıklama yazma, birden fazla dosyaya veya adıma bölme; doğrudan tek bir eksiksiz ```html bloğu üret ki Canvas Önizleme (Preview) anında canlı açılsın.
+- Tüm CSS ve JavaScript tek HTML dosyası içinde olsun (Tailwind CSS CDN, Font Awesome 6.5 CDN, Google Fonts: Plus Jakarta Sans, Inter, JetBrains Mono).
+- Hiçbir yerde `// TODO`, `...` veya yarım bırakılmış fonksiyon olmasın; kod `</script></body></html>` ile eksiksiz bitsin.
+- Kişisel API anahtarı veya Voice ID gömme (BYOK). Canvas iframe sandbox uyumu için tüm `localStorage` ve `IndexedDB` erişimlerini `try/catch` ile sarıp engellenirse RAM (`Map`) yedeğine düş.
+- Açılışta örnek 2 paragraflı Türkçe bir senaryo (gövde + video sonu kapanışı) hazır yüklü gelsin ki kullanıcı API anahtarı girmeden bile "Otomatik Duygu Ekle" ve arayüzü anında test edebilsin.
+
+TASARIM:
+- Koyu mod Google AI Studio / Gemini estetiği (#090b10 zemin, ince nokta ızgara, yumuşak mavi/mor/turkuaz parlama, buzlu cam yuvarlak kartlar, pill switchler, gradyanlı butonlar, Türkçe arayüz).
+- Sabit üst bar: "Voice Labs" başlığı | Ortada "Text to Speech" / "Speech to Text (Scribe)" sekme geçişi | Sağda canlı kalan dakika rozeti + ".HTML İndir" butonu.
+- Sade hero alanı + sağda canlı hesap kota kartı (kalan kredi, v4 Turbo tahmini dakika, ilerleme çubuğu).
+- 3 sütunlu responsive stüdyo: Sol (Ortak API anahtarı + aktif mod ayarları) | Orta (Editör veya STT paneli) | Sağ (Oynatıcı + 2 sekmeli Geçmiş / Önbellek Havuzu).
+
+ÖZELLİK 1 — TEXT-TO-SPEECH (ELEVENLABS API):
+- `GET https://api.elevenlabs.io/v1/user/subscription` ile canlı kota ve v4 Turbo (%50 indirim: 0.5 kredi/krk) kalan dakika hesabı.
+- `GET https://api.elevenlabs.io/v1/voices` ile hesaptaki sesleri çekip dropdown listeye doldurma.
+- Modeller: `eleven_v4_turbo` (varsayılan), `eleven_v4`, `eleven_v3`, `eleven_turbo_v2_5`, `eleven_multilingual_v2`. Formatlar: `mp3_44100_128`, `mp3_44100_192`, `mp3_22050_32`.
+- Ayarlar: `stability`, `similarity_boost`, `style`, `speed`, `use_speaker_boost` + tek tık "Duygu Modu" (`stability: 0.35`, `style: 0.15`).
+- `POST https://api.elevenlabs.io/v1/text-to-speech/{voice_id}?output_format=...`: Çoklu parçada ton devamlılığı için `previous_text` ve `next_text` gönder; 400/422 hata alırsa bunlarsız yedek istek dene.
+- Oynatıcı: Web Audio API (`AnalyserNode`) canlı canvas dalga formu, oynatma hızı (`0.85x–1.25x`), MP3 indir.
+
+ÖZELLİK 2 — ELEVENLABS TARZI OTOMATİK DUYGU EKLEME (ENHANCE):
+- Metindeki kelimeleri ASLA değiştirmeden yalnızca ElevenLabs v4/v3 uyumlu kısa İngilizce `[excited]`, `[whispering]`, `[sighing]`, `[laughing]`, `[chuckling]`, `[gasping]`, `[curious]`, `[sad]`, `[angry]`, `[nervous]`, `[relieved]`, `[sarcastic]`, `[serious]`, `[warmly]`, `[softly]`, `[pause]`, `[dramatic pause]`, `[clears throat]` etiketlerini duygu geçişlerinin önüne ekle; ardışık aynı duyguyu tekrarlama.
+- Varsayılan ücretsiz "Yerel Akıllı Motor": Türkçe + İngilizce duygu sözlüğü, noktalama (`...`, `?!`, `!`, `?`), bağlaç dönüşü (`ama`, `fakat`, `derken` -> `[pause]`) ve olumsuzlama koruması (`merak etme`, `korkma`, `üzülme`).
+- Tarz seçimi (`Doğal Diyalog`, `Dramatik`, `Hikaye`, `Enerjik`), yoğunluk (`Hafif`, `Dengeli`, `Yoğun`), "Tekrar Öner", "Geri Al", "Mevcut etiketleri koru", "Üretirken otomatik duygu ekle" ve opsiyonel Gemini/OpenAI LLM API anahtarı çekmecesi.
+- Aranabilir, kategorili 40+ etiketlik palet (tıklayınca imleç yerine ekler) + özel etiket ekleme + "Duygu Akışı" önizleme şeridi + v2/v2.5 uyumsuzluk uyarısı.
+
+ÖZELLİK 3 — KALICI PARÇA ÖNBELLEĞİ (INDEXEDDB) & KESİNTİSİZ MP3 BİRLEŞTİRİCİ:
+- Video girişi (intro), kapanışı (outro) gibi tekrar eden bölümleri `IndexedDB`'de (`ArrayBuffer` + metadata; engellenirse RAM `Map`) sakla. Aynı kalan bölümleri API'ye göndermeden 0 krediyle önbellekten çekip yeni seslendirilen kısımlarla tek `.mp3` dosyasında birleştir.
+- 2 aşamalı akıllı eşleyici: (1) Metin içinde satır boşluğu olmasa bile kayıtlı/sabitlenmiş parçaları uzundan kısaya kelime sınırlarında yakala; (2) Kalan yeni aralıkları seçilen moda (`Satır / Paragraf`, `Boş Satır Paragraf`, `Cümle Bazlı`) göre parçalayıp sadece eksikleri API'den üret ve önbelleğe yaz.
+- `voiceId` + `outputFormat` eşleşmesi zorunlu; "Esnek ton eşleşmesi" ile slider değişse de aynı sesin kayıtlı kalıpları kullanılabilsin. "Üretirken otomatik duygu ekle" açıksa hazır önbellek parçalarını bozmadan sadece yeni parçalara duygu ekle.
+- Editör altında canlı parça planı (yeşil `Önbellek • 0 krk` + dinle/yeniden üret ikonu, mavi `API`), net ödenecek kredi ve tasarruf göstergesi + "Son/Seçili Parçayı Sabitle" butonu.
+- Çerçeve bazlı CBR MP3 birleştirici: MPEG Layer III başlık ayrıştırıcı ile tüm parçalardan `ID3v2`, `ID3v1` ve `Xing`/`Info`/`VBRI` çerçevelerini temizle, aralarına seçilebilir sessiz MPEG köprü çerçevesi (`0/100/250/450 ms`) ekle; format uyuşmazsa Web Audio PCM -> WAV yedeğine geç.
+- Sağ panelde 2 sekme ("Geçmiş" / "Önbellek"): Kayıtlı parça sayısı, toplam boyut, toplam kredi tasarrufu sayacı, Tümü/Kalıplar filtresi, arama ve her parça için "Dinle", "Sona Ekle", "Sabitle", "Sil".
+
+ÖZELLİK 4 — SPEECH-TO-TEXT (ELEVENLABS SCRIBE V3 / V2 / V1):
+- `POST https://api.elevenlabs.io/v1/speech-to-text` (`FormData` + `XMLHttpRequest` yükleme yüzdesi çubuğu).
+- Dosya sürükle-bırak (`MP3, WAV, M4A, OGG, WEBM, MP4, MOV`) + canlı tarayıcı mikrofon kaydı (`MediaRecorder` + canlı seviye göstergesi).
+- Dil seçimi, konuşmacı ayrımı (`diarize`), ses olayları (`tag_audio_events`), zaman damgası (`word`/`character`/`none`), `keyterms`.
+- 3 görünüm: Metin (konuşmacılı diyalog), tıklanabilir zaman damgalı akış (sesi o saniyeye sarar), otomatik `.SRT`/`.VTT` altyazı önizleme + `.TXT`/`.SRT`/`.VTT`/`.JSON` indir + tek tıkla "TTS Editörüne Aktar".
